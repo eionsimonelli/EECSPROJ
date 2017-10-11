@@ -1,0 +1,700 @@
+// Eion Simonelli - 10/10/17
+// This program is used to convert an inFix mathematical expression
+// into a postFix expression. After doing so it will then evaluate
+// the expression into its corresponding integer value
+// This is done through the use of stacks in order to keep
+// proper ordering throughout the expression
+// EX
+// 3 + 2
+// 32+
+// 5
+
+
+
+
+
+package helper;
+import java.util.*;
+import static java.lang.Math.toIntExact;
+import java.io.*;
+
+
+public class ExpressionEvaluator extends LLstack < Object > {
+    static LLstack < Character > symbol = new LLstack < > ();
+    static LLstack < String > stringStack = new LLstack < > ();
+    static LLstack < Integer > intStack = new LLstack < > ();
+
+    static String postFix = "";
+    static String helperString = "";
+
+
+
+    public static void main(String[] args) {
+        // TODO Auto-generated method stub
+
+
+
+
+        Scanner input = new Scanner(System.in);
+        String userString = "";
+
+
+
+        System.out.println("Please enter an inFix expression: ");
+        userString = input.nextLine();
+
+
+
+        while (!validExpression(userString)) {
+            System.out.println("");
+            userString = input.nextLine();
+        }
+
+
+        //Once a proper infix string has been entered
+        //the two processing methods are then called
+        
+        inFixToPost(userString);
+        processPostFix(userString);
+
+
+
+    }
+    
+    // This method will take a 'proper' infix string and convert it to its PostFix notation.
+    //	@param: inFixExp the inFix Expression
+    //	@return: void, however it will print the converted string
+    //	
+    //	Done so using a character stack in order to push the symbol characters as detected
+    //	If an integer is detected, it will automatically append it to the postfix string
+    //	and pop the operands as taken in to convert correctly
+    
+    private static void inFixToPost(String inFixExp) {
+
+
+
+    	// Clearing our character stack in case junk values were somehow around
+        symbol.clear();
+        int leftParen = 0;
+
+
+        // Looping over the proper inFix string
+        // grabbing each character one by one
+        for (int i = 0; i < inFixExp.length(); i++) {
+
+            char c = inFixExp.charAt(i);
+
+            switch (c) {
+
+                case '+':					//As the characters come in they are compared
+                case '-':					//to the allowed characters and processed if 
+                case '*':					//they are deemed to be proper
+                case '/':
+                case 'Q':
+                case 'C':
+                case '<':
+                case '>':
+                case '%':
+                    processOperator(c);
+                    continue;
+
+                case ' ':					//Skipping over any white space
+                    continue;			
+
+                case '(':
+
+                    leftParen++;
+                    symbol.push(c);
+                    continue;
+
+
+                case ')':
+
+                    leftParen--;
+                    processRightParen();
+                    continue;
+
+            }
+          //Checking character against their askii number value
+          //if they are a number they are immediately appended
+          
+            if (c >= '0' && c <= '9') {		
+                postFix += c;
+            } else {
+                System.out.println("Error! " + c + " is an invalid operator!");
+                System.exit(0);
+
+
+            }
+
+        }
+
+        char c;
+        while (!symbol.isEmpty()) {
+            c = symbol.pop();
+            postFix += c;
+            helperString += c;
+
+        }
+
+        if (leftParen != 0) {
+            System.out.print("Error! Parenthesis do not match");
+
+
+        }
+
+
+        System.out.println(postFix);
+
+
+
+
+    }
+
+
+
+    //This method will parse the inFix string and evaluate it to its corresponding
+    //mathematical value.
+    // @param: userString the inFix Expression
+    //	@return: void, however it will print the converted expression to its corresponding evaluation
+    // This is done by splitting the string while keeping the delimeters around so that they 
+    // can be used for processing the value as well
+    // This is done by using a String array, filling it after a split has occured and found
+    // the desired delimeter
+    
+    private static int processPostFix(String userString) {
+
+
+        long op1 = 0;
+        long op2 = 0;
+        int userInt;
+        String userSymbol;
+        int total;
+        int specialCase = 0;
+        int leftParenCheck = 0;
+        //replacing whitespace
+        userString = userString.replaceAll("\\s+", "");
+
+
+        //Splitting the string - this will keep the delimiters in our array so we can parse through them as needed
+        String result[] = userString.split("(?=[+.])|(?<=[+.])|(?=[-.])|(?<=[-.])|(?=[(.])|(?<=[(.])|(?=[).])|(?<=[).])|" +
+            "(?=[*.])|(?<=[*.])|(?=[/.])|(?<=[/.])|" +
+            "(?=[Q.])|(?<=[Q.])|(?=[C.])|(?<=[C.])|" +
+            "(?=[<.])|(?<=[<.])|(?=[>.])|(?<=[>.])|" +
+            "(?=[%.])|(?<=[%.])");
+
+        
+        // Here we are looping over the array, one token at a time in order to
+        // properly evaluate the String
+        for (int i = 0; i < result.length; i++)
+
+        {
+            String token = result[i];
+            try {
+                userInt = Integer.parseInt(token);									// In order to detect whether or not an integer has been placed
+                																	// in the array, we try to parse it and push it into the 
+                																	// the Integer stack "intStack"
+
+                if (userInt < Integer.MIN_VALUE || userInt > Integer.MAX_VALUE) {
+                    System.out.print("OVERFLOW DETECTED, Exiting Program");
+                    System.exit(0);
+
+                } else
+                    intStack.push(userInt);
+
+
+
+              
+
+
+
+            } catch (NumberFormatException ex) {
+
+
+            }
+
+
+            // This is a trick in order to evaluate what is left on the stack when two items are
+            // seen on the Integer stack
+            // The "leftParenCheck" is a condition used so that this is not evaluated
+            // before a corresponding right parenthesis has been found.
+            // Before implementing this condition there was trouble with these being evaluated
+            // prematurely.
+            
+            if (intStack.size() == 2 && leftParenCheck == 0) {
+                op2 = intStack.pop();
+                op1 = intStack.pop();
+
+
+
+
+                userSymbol = stringStack.pop();
+
+
+                total = evaluateExp(op1, op2, userSymbol);
+
+
+
+                intStack.push(total);
+
+
+            }
+            
+            // Same as in the inFixToPost method, checking each
+            // item, this time in the array, in order to determine
+            // how to evaluate it.
+            // Once a desired token is found it is then pushed onto the 
+            // String stack, stringStack, for further evaluation
+            switch (token) {
+                case "+":
+                case "-":
+                case "*":
+                case "/":
+                case "<":
+                case ">":
+                case "%":
+                    stringStack.push(token);
+                    continue;
+
+                case "Q":
+                case "C":
+                    stringStack.push(token);
+                    specialCase++;
+                    continue;
+
+                case "(":
+                    leftParenCheck++;
+                    stringStack.push(token);
+                    continue;
+
+
+
+                case ")":
+                	
+                	//Once a right parenthesis has been found, we then continue to pop operators and
+                	// operands alike in order to evaluate them
+                	// The second operand is popped and since order matters we had to make sure
+                	// that this was the correct operator so we would not mix up our operation
+                	// For ex. we wanted to make sure it was 4-3 NOT 3-4
+                	// After both operators and an operand we use the evaluateExp 
+                	// method that uses test cases to determine the proper operation
+                	// Pushing the result once this has been done
+
+                    while (!stringStack.isEmpty() && !stringStack.peek().equals("(")) {
+                        op2 = intStack.pop();
+                        userSymbol = stringStack.pop();
+
+                        op1 = intStack.pop();
+
+
+
+
+                        total = evaluateExp(op1, op2, userSymbol);
+
+                        intStack.push(total);
+
+
+
+
+                    }
+
+                    if (stringStack.peek().equals("(")) {			// We needed to make sure that we got rid of the final leftover
+                    												// left parenthesis that was originally pushed
+                        stringStack.pop();
+                        leftParenCheck = 0;
+                    }
+
+                    
+                    // We had two unary operators that only took in one operand so we needed to make sure that we did not
+                    // attempt to pop two off the stack as before which is why we checked for these before popping
+                    if (!stringStack.isEmpty()) {
+                        if (stringStack.peek().equals("Q") || stringStack.peek().equals("C")) {
+                            op2 = intStack.pop();
+                            userSymbol = stringStack.pop();
+                            total = evaluateExp(op2, 0, userSymbol);
+                            intStack.push(total);
+
+
+
+
+                        }
+
+
+                    }
+
+                    continue;
+
+
+
+
+            }
+
+
+        }
+
+        
+        // Once the loop has completed it was still possible to have values left on our stack
+        // This is identical to what was being done in the loop just making sure
+        // that we had the correct total
+        while (!stringStack.isEmpty()) {
+
+            if (stringStack.peek().equals("Q") || stringStack.peek().equals("C")) {
+                op2 = intStack.pop();
+                userSymbol = stringStack.pop();
+                total = evaluateExp(op2, 0, userSymbol);
+
+                intStack.push(total);
+
+
+
+            } else {
+                op2 = intStack.pop();
+                op1 = intStack.pop();
+
+
+
+
+                userSymbol = stringStack.pop();
+
+
+                total = evaluateExp(op1, op2, userSymbol);
+                //System.out.println(total);
+
+                intStack.push(total);
+            }
+        }
+        System.out.println(intStack.pop());
+
+
+
+
+        return 0;
+    }
+
+    // This method was used to validate the inFix expression in order to make
+    // sure that it was well formed. Similar to the processPostFix above, 
+    // this method splits the string in order to evaluate the array values one by one
+    //	@param: The inFix expression, 'expression'
+    //	@return: T/F depending on if the expression was properly formed
+    
+    private static boolean validExpression(String expression) {
+       
+    	int userInt;
+        int index = 0;
+        int leftCount = 0;
+        
+        //Replacing white space with the "|" char, this was done b/c
+        //removing white space was not possible
+        //For ex.) an expression such as "3 4" once whitespace was removed became "34"
+        //this did not allow for me to test properly as it was not possible to tell if it was
+        //the integer 34 or "3 4" which is why the "|" was used as I could test against this
+        
+        expression = expression.replaceAll("\\s+", "|");
+        boolean isInt = false;
+        
+        
+        // Splitting the expression as before
+        String ans[] = expression.split("(?=[+.])|(?<=[+.])|(?=[-.])|(?<=[-.])|(?=[(.])|(?<=[(.])|(?=[).])|(?<=[).])|" +
+            "(?=[*.])|(?<=[*.])|(?=[/.])|(?<=[/.])|" +
+            "(?=[Q.])|(?<=[Q.])|(?=[C.])|(?<=[C.])|" +
+            "(?=[<.])|(?<=[<.])|(?=[>.])|(?<=[>.])|" +
+            "(?=[%.])|(?<=[%.])|(?=[|.])|(?<=[|.])");
+
+
+
+        // If the first value was an operator such as a "+", we knew that it was
+        // already ill formed -> immediately returning a false
+        
+        if (isOperator(ans[0])) {
+            if (!ans[0].equals("Q") && !ans[0].equals("C")) {
+                System.out.println("Ill Formed Expression");
+                return false;
+            }
+        }
+
+        //As above, if the final token is an operator, we know that it is illformed as well
+        if (isOperator(ans[ans.length - 1])) {
+            System.out.println("Ill Formed Expression");
+            return false;
+        }
+
+        
+        
+        //Walking through our array as before
+        for (int i = 0; i < ans.length; i++)
+
+        {
+            index = i;
+           
+            try {
+                userInt = Integer.parseInt(ans[i]);
+
+
+                //Similar to the methods above however here we know that
+                //if this was successful that we had an integer so we could use this
+                // to set the index to be tested against
+                isInt = true;
+
+                index = i;
+
+
+
+
+            } catch (NumberFormatException ex) {
+
+                isInt = false;
+            }
+
+            if (ans[index].equals("(")) {				//if "leftCount" != 0 we know that we have unmatch parenthesis
+                leftCount++;
+            }
+
+            if (ans[index].equals(")")) {
+                leftCount--;
+            }
+            
+            
+            // isInt was set above in our try catch, if true then we set an index we know is an integer in our array
+            // Here we use this to look ahead and determine if the next array val is another integer or an operator
+            // if it is another integer/operand then we know it is illformed. EX) "2 2" -> no op in b/w
+            // As mentioned the "|" tokens fill the white space so if these are present in the array we 
+            // walk over them in order to determine if the next value is another operand or not
+            // the same is done to handle the parenthesis as these are already handled on their own
+            // so they too are jus walked over
+            // If the value found after the index of the integer is not an operator we know that we have 
+            // two operands without an operator in b/w making it ill formed
+            
+            if (isInt) {
+                index++;
+                if (index < ans.length - 2) {
+
+                    while (ans[index].equals("|") || ans[index].equals("(") || ans[index].equals(")")) {
+
+                        index++;
+                        if (index > ans.length - 2) {
+                            return true;
+                        }
+
+                    }
+                    if (index < ans.length - 1) {
+                        if (!isOperator(ans[index])) {
+                        	System.out.println(ans[index]);
+                            System.out.print("Invalid Expression: Missing operand b/w two integers");
+
+                            return false;
+                        }
+                    }
+
+                }
+
+                isInt = false;
+            }
+            
+            
+            
+            // Operators are handled the same as integers however this time we are checking to see if we 
+            // have two operators in a row rather than operands
+            int j = i;
+            if (isOperator(ans[j])) {
+                j++;
+
+                if (j < ans.length - 1) {
+                    while (ans[j].equals("|") || ans[j].equals("(") || ans[j].equals(")")) {
+
+                        j++;
+
+                    }
+
+                    if (j < ans.length - 1) {
+                        if (isOperator(ans[j]) && !ans[j].equals("Q") && !ans[j].equals("C")) {
+                            System.out.print("Invalid Expression: Missing integers b/w operands");
+
+                            return false;
+                        }
+                    }
+
+                }
+            }
+
+            
+            //If at any point in the loop our leftCount goes negative we know that we have
+            //opened a right paren before a left -> ill formed
+
+            if (leftCount < 0) {
+                System.out.print("Error, a left parenthesis is not preceding a closing right");
+                return false;
+            }
+
+
+
+        }
+
+        if (leftCount != 0) {
+            System.out.print("Error, parenthesis do not match");
+            return false;
+        }
+        return true;
+    }
+
+
+
+    // This method is used to evaluate the expression and return the total to be pushed onto the stack
+    // @param: op1 and op2 -> popped from the integer stack 
+    // 		   operand2 -> the operator popped from the string stack	
+    // @returns: an integer that has been evaulated from the switch statement
+    // This method is very straightforward, we check each case and perform the 
+    // operation specific to that case
+    
+    private static int evaluateExp(long op1, long op2, String operand2) {
+        // TODO Auto-generated method stub
+        long total = 0;
+        long userOp1, userOp2;
+        int totalCast;
+        userOp1 = op1;
+        userOp2 = op2;
+        double ans = 0;
+
+        switch (operand2) {
+
+            case "+":
+                total = userOp1 + userOp2;
+                break;
+            case "-":
+                total = userOp1 - userOp2;
+                break;
+            case "*":
+                total = userOp1 * userOp2;
+                break;
+            case "/":
+                total = userOp1 / userOp2;
+                break;
+            case "%":
+                total = userOp1 % userOp2;
+                break;
+            case "<":
+                total = userOp1 << userOp2;
+                break;
+            case ">":
+                total = userOp1 >> userOp2;
+                break;
+            case "Q":
+                ans = Math.sqrt(op1);
+                total = (long) ans;
+
+                break;
+            case "C":
+
+                ans = Math.cbrt(op1);
+                total = (long) ans;
+
+                break;
+
+
+        }
+        
+        //Checking for overflow in our operations along the way
+
+        if (total > Integer.MAX_VALUE) {
+            System.out.print("Overflow Detected: Exiting Program");
+            System.exit(0);
+        } else if (total < Integer.MIN_VALUE) {
+            System.out.print("Negative Overflow Detected: Exiting Program");
+            System.exit(0);
+        }
+        
+        //casting our total back to an integer to be pushed onto the stack
+        totalCast = toIntExact(total);
+
+
+
+        return totalCast;
+
+
+
+    }
+    
+    
+    // This method is used to check if a string the parsed array is a desired operator
+    // in order to determine whether the string is well or ill formed
+    //	@param: the String opcheck -> an operator as before
+    //  @returns: T/F dependent on whether or not the string is an operator
+    private static boolean isOperator(String opCheck) {
+
+        switch (opCheck) {
+
+            case "+":
+            case "-":
+            case "*":
+            case "/":
+            case "^":
+            case "Q":
+            case "C":
+            case "<":
+            case ">":
+            case "%":
+
+
+                return true;
+
+
+
+        }
+
+        return false;
+    }
+    
+    
+    // This method is used in the inFix converter once a right parenthesis has been detected
+    // @param: none
+    // @returns: none
+    // This method checks the top token and as long as it is not a left paren
+    // it will append the token to the postFix string
+    private static void processRightParen() {
+        char token = symbol.peek();
+        while (token != '(') {
+            postFix += token;
+            helperString += token;
+
+            symbol.pop();
+            token = symbol.peek();
+
+
+
+        }
+        symbol.pop();
+
+    }
+    
+    // Similar to the processRightParen as seen above this method is used 
+    // for processing the inFix to postFix conversion
+    // @param: the char c -> an operator to be appended
+    // @returns: none
+    // Once again we check to see if the top token is a left paren and if it is
+    // not we then pop and append the operator to the postFix string
+    // If that char string is empty we just push the token onto the string for
+    // later evaluation
+    
+    private static void processOperator(char c) {
+
+        if (symbol.isEmpty()) {
+            symbol.push(c);
+            return;
+        }
+        char topToken = symbol.peek();
+
+        while (!symbol.isEmpty() && topToken != '(') {
+            symbol.pop();
+            postFix += topToken;
+            helperString += topToken;
+
+            if (!symbol.isEmpty()) {
+                topToken = symbol.peek();
+            } else {
+                continue;
+            }
+        }
+
+        symbol.push(c);
+    }
+
+}

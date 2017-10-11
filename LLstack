@@ -1,0 +1,129 @@
+// Eion Simonelli - 10/10/17
+// This class implements a stack using generics
+// so that the user can cast to any data type desired
+// This stack is created using a linked list and was done
+// so for EECS 2500 - Linear Data Structures
+// Dr. Thomas
+
+
+
+
+package helper;
+
+import java.util.*;
+import java.util.EmptyStackException;
+import java.util.Iterator;
+
+class LLstack <Token> 
+{
+	private int stackSize; // size of out stack
+	private Node<Token> top; // top of the stack
+	
+	private class Node<Token>
+	{
+		private Token token;
+		private Node<Token> next;
+	}
+	
+	// Constructor initializing empty stack
+	public LLstack()
+	{	
+		top = null;	
+		stackSize = 0;
+			
+	}
+	
+	// @param: none
+	// @returns: none
+	// Clears the stack by pointing the head to null
+	// therefore leaving the previous links without a reference
+	public void clear()
+	{	
+		
+		top = null;
+		stackSize = 0;
+	}
+	
+	
+	// @param: none
+    // @returns: none
+	// Returns the size, number of items,
+	// In the stack
+	public int size()
+	{
+		return stackSize;
+	}
+	
+	
+	
+	// @param: none
+	// @returns: none
+	//Determines if size is empty
+	//Returns true if empty and false otherwise
+	public boolean isEmpty()	
+	{
+		return top == null;
+		
+	}
+	
+	
+	// @param: the Token object token
+	// @returns: none
+	// This will add another item onto the top
+	// of the stack by setting the previous
+	// top to a temp in order to reference
+	// the new top, token, to it
+	public void push(Token token)
+	{	
+		stackSize++;
+		Node<Token> temp = top;
+		top = new Node<Token>();
+		top.token = token;
+		top.next = temp;
+		
+	}
+	
+	
+	// @param: none
+	// @returns: none
+	// @throws: EmptyStackException if the stack
+	//          has no items, tokens, on it
+	// Allows for the user to take the top item off
+	// of the stack
+	public Token pop(){
+		
+		if (isEmpty()) 
+			{ throw new EmptyStackException(); }
+		
+		Token token = top.token;
+		top = top.next;
+		stackSize--;
+		return token;
+		
+		
+	}
+	
+	// @param: none
+		// @returns: none
+		// @throws: EmptyStackException if the stack
+		//          has no items, tokens, on it
+		// Allows for the user to see what the top item 
+		// of the stack is
+	public Token peek(){
+		
+		if (isEmpty()) 
+			{ throw new EmptyStackException(); }
+		
+		return top.token;
+		
+	}
+	
+	
+	
+
+	
+	
+}
+
+
+
